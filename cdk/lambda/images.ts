@@ -3,19 +3,38 @@
 
 import * as sharp from 'sharp'
 import {S3, Lambda} from 'aws-sdk'
-import { APIGatewayProxyResult, S3Event } from "aws-lambda";
+import { APIGatewayProxyResult, S3Event, APIGatewayProxyEvent } from "aws-lambda";
 
-// const downloadParam = {
-//   Bucket: process.env.UPLOAD_BUCKET as string,
-//   Key: "arteum-ro-TVFx7iFAAdQ-unsplash.jpg",
-// }
-// exports.info = async function(event: S3.PutBucketNotificationRequest): Promise<APIGatewayProxyResult> {
-
-//   return {
-//     statusCode: 200,
-//     body: 'hi'
-//   }
-// }
+exports.getPreSignedURLToS3 = async function(event: APIGatewayProxyEvent) { // TODO: what are their definitions
+  // https://medium.com/@ray0427/deploy-serverless-s3-uploader-by-aws-cdk-78561123adc
+  try {
+    const s3 = new S3()
+    const managedupload = S3.ManagedUpload
+    const req: S3.Types.PutObjectRequest = {
+      Bucket: "plan-smoke-sheet", //TODO: process.env.BUCKET_NAME
+      Key: "pic1.png", //TODO: event.body.filename
+      // TODO: more fields and error handling: https://serverlessfirst.com/serverless-photo-upload-api/
+      // TODO: useful understanding https://devcenter.heroku.com/articles/s3-upload-node
+    }
+    const response = await s3.getSignedUrlPromise('putObject', req)
+    return {
+      statusCode: 200,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      //@ts-ignore
+      body: response,
+    }
+  } catch (e) {
+    return {
+      statusCode: 500,
+      headers: {
+        "Content-Type": "application/json",
+        body: e
+      }
+    }
+  }
+}
 
 exports.resize = async function (
   event: S3Event
